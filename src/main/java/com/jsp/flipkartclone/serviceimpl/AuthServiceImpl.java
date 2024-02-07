@@ -2,6 +2,7 @@ package com.jsp.flipkartclone.serviceimpl;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.jsp.flipkartclone.entity.Customer;
@@ -22,6 +23,8 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+	private PasswordEncoder passwordEncoder;
+	
 	private CustomerRepo customerRepo;
 
 	private UserRepo userRepo;
@@ -30,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
 
 	private ResponseStructure<UserResponse> structure;
 
+	@SuppressWarnings("unchecked")
 	public <T extends User> T mapToUser(UserRequest userRequest) {
 		User user = null;
 		switch (userRequest.getUserRole()) {
@@ -44,7 +48,8 @@ public class AuthServiceImpl implements AuthService {
 
 		user.setUserName(userRequest.getEmail().split("@")[0]);
 		user.setEmail(userRequest.getEmail());
-		user.setPassword(userRequest.getPassword());
+		//user.setPassword(userRequest.getPassword());
+		user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 		user.setUserRole(userRequest.getUserRole());
 		;
 		return (T) user;
