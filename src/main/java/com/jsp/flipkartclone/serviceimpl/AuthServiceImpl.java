@@ -22,6 +22,7 @@ import com.jsp.flipkartclone.entity.Customer;
 import com.jsp.flipkartclone.entity.RefreshToken;
 import com.jsp.flipkartclone.entity.Seller;
 import com.jsp.flipkartclone.entity.User;
+import com.jsp.flipkartclone.exception.UserNotLoggedInException;
 import com.jsp.flipkartclone.repo.AccessTokenRepo;
 import com.jsp.flipkartclone.repo.RefreshTokenRepo;
 import com.jsp.flipkartclone.repo.UserRepo;
@@ -35,10 +36,12 @@ import com.jsp.flipkartclone.service.AuthService;
 import com.jsp.flipkartclone.util.CookieManager;
 import com.jsp.flipkartclone.util.MessageStructure;
 import com.jsp.flipkartclone.util.ResponseStructure;
+import com.jsp.flipkartclone.util.SimpleResponseStructure;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,6 +62,8 @@ public class AuthServiceImpl implements AuthService {
 	private AccessTokenRepo accessTokenRepo;
 	private RefreshTokenRepo refereshTokenRepo;
 	private ResponseStructure<AuthResponse> authStructure;
+	private ResponseStructure<SimpleResponseStructure> simpleStructure;
+
 	@Value("${myapp.access.expiry}")
 	private int accessExpireyInSeconds;
 
@@ -69,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
 			ResponseStructure<UserResponse> structure, CacheStore<User> userCacheStore, JavaMailSender javaMailSender,
 			AuthenticationManager authenticationManager, CookieManager cookieManager, JwtService jwtService,
 			AccessTokenRepo accessTokenRepo, RefreshTokenRepo refereshTokenRepo,
-			ResponseStructure<AuthResponse> authStructure) {
+			ResponseStructure<AuthResponse> authStructure, ResponseStructure<SimpleResponseStructure> simpleStructure) {
 		super();
 		this.passwordEncoder = passwordEncoder;
 		this.userRepo = userRepo;
@@ -83,6 +88,7 @@ public class AuthServiceImpl implements AuthService {
 		this.accessTokenRepo = accessTokenRepo;
 		this.refereshTokenRepo = refereshTokenRepo;
 		this.authStructure = authStructure;
+		this.simpleStructure = simpleStructure;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -147,13 +153,13 @@ public class AuthServiceImpl implements AuthService {
 		String refreshToken = jwtService.generateRefreshToken(user.getUserName());
 
 		// adding access and refresh tokens to response
-		response.addCookie(cookieManager.Configure(new Cookie("at", refreshToken), accessExpireyInSeconds));
+		response.addCookie(cookieManager.Configure(new Cookie("at", accessToken), accessExpireyInSeconds));
 		response.addCookie(cookieManager.Configure(new Cookie("rt", refreshToken), accessExpireyInSeconds));
 
 		// saving the access and refresh cookies into database
-		accessTokenRepo.save(AccessToken.builder().token(refreshToken).isBlocked(false)
+		accessTokenRepo.save(AccessToken.builder().user(user).isBlocked(false).token(accessToken)
 				.expireation(LocalDateTime.now().plusSeconds(accessExpireyInSeconds)).build());
-		refereshTokenRepo.save(RefreshToken.builder().token(refreshToken).isBlocked(false)
+		refereshTokenRepo.save(RefreshToken.builder().user(user).token(refreshToken).isBlocked(false)
 				.expireation(LocalDateTime.now().plusSeconds(accessExpireyInSeconds)).build());
 
 	}
@@ -240,4 +246,20 @@ public class AuthServiceImpl implements AuthService {
 
 		}
 	}
+
+	@Override
+	public ResponseEntity<ResponseStructure<SimpleResponseStructure>> logout(HttpServletResponse httpServletResponse,
+			String accessToken, String refreshToken) {
+		if (accessToken == null && refreshToken == null)
+			throw new UserNotLoggedInException("user not loggedin", HttpStatus.NOT_FOUND.value(), "");
+		AccessToken at = accessTokenRepo.findByToken(accessToken);
+		at.setBlocked(true);
+		accessTokenRepo.save(at);
+		RefreshToken rt = refereshTokenRepo.findByToken(refreshToken);
+		rt.setBlocked(true);
+		refereshTokenRepo.save(rt);
+		return new ResponseEntity<ResponseStructure<SimpleResponseStructure>>(
+				simpleStructure.setMessage("logout sucessful").setStatus(HttpStatus.GONE.value()), HttpStatus.GONE);
+	}
+
 }

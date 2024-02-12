@@ -1,18 +1,16 @@
-package com.jsp.flipkartclone.exception;
+package com.jsp.flipkartclone.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-@SuppressWarnings("serial")
 @Getter
 @Setter
 @AllArgsConstructor
 @Builder
-public class ConstRaintViolationException extends RuntimeException {
+public class SimpleResponseStructure {
 
 	private String message;
 	private int status;
-	private String rootCause;
 }
