@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -260,6 +261,26 @@ public class AuthServiceImpl implements AuthService {
 		refereshTokenRepo.save(rt);
 		return new ResponseEntity<ResponseStructure<SimpleResponseStructure>>(
 				simpleStructure.setMessage("logout sucessful").setStatus(HttpStatus.GONE.value()), HttpStatus.GONE);
+	}
+
+	@Override
+	public ResponseEntity<ResponseStructure<SimpleResponseStructure>> revokeAll() {
+		String userName = SecurityContextHolder.getContext().getAuthentication().getName();
+		userRepo.findByUserName(userName).ifPresent(user->{
+			accessTokenRepo.findByUserAndBlocked(user, false).ifPresent(accessToken->{
+		accessToken.setBlocked(true);
+		accessTokenRepo.save(accessToken);
+				
+			});
+			refereshTokenRepo.findByUserAndBlocked(user, false).ifPresent(refreshToken->{
+				refreshToken.setBlocked(true);
+				refereshTokenRepo.save(refreshToken);
+				
+			});
+		});
+		simpleStructure.setMessage("Revoked from all devices");
+		simpleStructure.setStatus(HttpStatus.OK.value());
+		return new ResponseEntity<>(simpleStructure,HttpStatus.OK);
 	}
 
 }

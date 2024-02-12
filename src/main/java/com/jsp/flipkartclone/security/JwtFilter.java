@@ -38,29 +38,32 @@ public class JwtFilter extends OncePerRequestFilter {
 		String at = null;
 		String rt = null;
 		Cookie[] cookies = request.getCookies();
-		for (Cookie cookie : cookies) {
-			if (cookie.getName().equals("at"))
-				at = cookie.getValue();
-			if (cookie.getName().equals("rt"))
-				rt = cookie.getValue();
+		if (cookies != null) {
+			for (Cookie cookie : cookies) {
+				if (cookie.getName().equals("at"))
+					at = cookie.getValue();
+				if (cookie.getName().equals("rt"))
+					rt = cookie.getValue();
+			}
+			if (at != null && rt != null) {
+				Optional<AccessToken> accessToken = accessTokenRepo.findByTokenAndIsBlocked(at, false);
+				if (accessToken == null)
+					throw new RuntimeException();
+				else {
+					log.info(" Authenticating the token");
+					String userName = jwtService.extractUserName(at);
+					if (userName == null)
+						throw new RuntimeException("failed to authenticate");
+					UserDetails userDetails = customUserDetailService.loadUserByUsername(userName);
+					UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+							userName, null, userDetails.getAuthorities());
+					authenticationToken.setDetails(new WebAuthenticationDetails(request));
+					SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+					log.info("authenticated sucessfully");
+				}
+			}
 		}
-		if (at == null || rt == null)
-			throw new RuntimeException("user not loggedin");
-		Optional<AccessToken> accessToken = accessTokenRepo.findByTokenAndIsBlocked(at, false);
-		if (accessToken == null)
-			throw new RuntimeException();
-		else {
-			log.info(" Authenticating the token");
-			String userName = jwtService.extractUserName(at);
-			if (userName == null)
-				throw new RuntimeException("failed to authenticate");
-			UserDetails userDetails = customUserDetailService.loadUserByUsername(userName);
-			UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userName,
-					null, userDetails.getAuthorities());
-			authenticationToken.setDetails(new WebAuthenticationDetails(request));
-			SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-			log.info("authenticated sucessfully");
-		}
+
 		filterChain.doFilter(request, response);
 	}
 
