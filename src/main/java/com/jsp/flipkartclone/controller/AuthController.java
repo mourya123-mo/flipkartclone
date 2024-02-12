@@ -49,4 +49,8 @@ public class AuthController {
 			@CookieValue(name="at",required = false) String accessToken,@CookieValue(name="rt",required = false) String refreshToken ){
 		return authService.logout(httpServletResponse,accessToken,refreshToken);
 	}
+	public ResponseEntity<ResponseStructure<SimpleResponseStructure>> revokeAll(){
+		
+		return authService.revokeAll();
+	}
 }
