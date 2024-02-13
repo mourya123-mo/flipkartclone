@@ -9,14 +9,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.jsp.flipkartclone.entity.AccessToken;
 import com.jsp.flipkartclone.entity.User;
 
-
 public interface AccessTokenRepo extends JpaRepository<AccessToken, Long> {
 
 	AccessToken findByToken(String token);
-	Optional<AccessToken> findByTokenAndIsBlocked(String token , boolean isBlocked);
-	
-	Optional<AccessToken> findByUserAndBlocked(User user,boolean isBlocked);
-	
-    List<AccessToken> findByExpireationBefore(LocalDateTime now);
-}
 
+	Optional<AccessToken> findByTokenAndIsBlocked(String token, boolean isBlocked);
+
+	List<AccessToken> findByUserAndIsBlocked(User user, boolean isBlocked);
+
+	List<AccessToken> findByExpireationBefore(LocalDateTime now);
+
+	List<AccessToken> findAllByUserAndIsBlockedAndTokenNot(User user, boolean b, String accessToken);
+}

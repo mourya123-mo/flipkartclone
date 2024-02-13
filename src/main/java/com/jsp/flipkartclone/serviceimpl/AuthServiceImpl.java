@@ -2,6 +2,7 @@ package com.jsp.flipkartclone.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,6 @@ import com.jsp.flipkartclone.util.SimpleResponseStructure;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -63,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
 	private AccessTokenRepo accessTokenRepo;
 	private RefreshTokenRepo refereshTokenRepo;
 	private ResponseStructure<AuthResponse> authStructure;
-	private ResponseStructure<SimpleResponseStructure> simpleStructure;
+	private SimpleResponseStructure simpleStructure;
 
 	@Value("${myapp.access.expiry}")
 	private int accessExpireyInSeconds;
@@ -75,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
 			ResponseStructure<UserResponse> structure, CacheStore<User> userCacheStore, JavaMailSender javaMailSender,
 			AuthenticationManager authenticationManager, CookieManager cookieManager, JwtService jwtService,
 			AccessTokenRepo accessTokenRepo, RefreshTokenRepo refereshTokenRepo,
-			ResponseStructure<AuthResponse> authStructure, ResponseStructure<SimpleResponseStructure> simpleStructure) {
+			ResponseStructure<AuthResponse> authStructure,SimpleResponseStructure simpleStructure) {
 		super();
 		this.passwordEncoder = passwordEncoder;
 		this.userRepo = userRepo;
@@ -249,38 +249,99 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public ResponseEntity<ResponseStructure<SimpleResponseStructure>> logout(HttpServletResponse httpServletResponse,
+	public ResponseEntity<SimpleResponseStructure> logout(HttpServletResponse httpServletResponse,
 			String accessToken, String refreshToken) {
 		if (accessToken == null && refreshToken == null)
 			throw new UserNotLoggedInException("user not loggedin", HttpStatus.NOT_FOUND.value(), "");
 		AccessToken at = accessTokenRepo.findByToken(accessToken);
 		at.setBlocked(true);
+		System.out.println("at blocked");
 		accessTokenRepo.save(at);
+	System.out.println("at saved");
 		RefreshToken rt = refereshTokenRepo.findByToken(refreshToken);
 		rt.setBlocked(true);
+		System.out.println("rt blocked");
 		refereshTokenRepo.save(rt);
-		return new ResponseEntity<ResponseStructure<SimpleResponseStructure>>(
+		System.out.println("rt saved");
+		httpServletResponse.addCookie(cookieManager.invalidate(new Cookie("at", "")));
+		httpServletResponse.addCookie(cookieManager.invalidate(new Cookie("rt", "")));
+		return new ResponseEntity<SimpleResponseStructure>(
 				simpleStructure.setMessage("logout sucessful").setStatus(HttpStatus.GONE.value()), HttpStatus.GONE);
 	}
 
 	@Override
-	public ResponseEntity<ResponseStructure<SimpleResponseStructure>> revokeAll() {
+	public ResponseEntity<SimpleResponseStructure> revokeAll() {
 		String userName = SecurityContextHolder.getContext().getAuthentication().getName();
-		userRepo.findByUserName(userName).ifPresent(user->{
-			accessTokenRepo.findByUserAndBlocked(user, false).ifPresent(accessToken->{
-		accessToken.setBlocked(true);
-		accessTokenRepo.save(accessToken);
-				
+		userRepo.findByUserName(userName).ifPresent(user -> {
+			accessTokenRepo.findByUserAndIsBlocked(user, false).forEach(accessToken -> {
+				accessToken.setBlocked(true);
+				accessTokenRepo.save(accessToken);
+
 			});
-			refereshTokenRepo.findByUserAndBlocked(user, false).ifPresent(refreshToken->{
+			refereshTokenRepo.findByUserAndIsBlocked(user, false).forEach(refreshToken -> {
 				refreshToken.setBlocked(true);
 				refereshTokenRepo.save(refreshToken);
-				
+
 			});
 		});
 		simpleStructure.setMessage("Revoked from all devices");
 		simpleStructure.setStatus(HttpStatus.OK.value());
-		return new ResponseEntity<>(simpleStructure,HttpStatus.OK);
+		return new ResponseEntity<SimpleResponseStructure>(simpleStructure, HttpStatus.OK);
+	}
+
+	@Override
+	public ResponseEntity<SimpleResponseStructure> revokeOtherDevices(String accessToken,
+			String refreshToken) {
+		userRepo.findByUserName(SecurityContextHolder.getContext().getAuthentication().getName()).ifPresent(user -> {
+			blockAccessToken(accessTokenRepo.findAllByUserAndIsBlockedAndTokenNot(user, false, accessToken));
+
+			blockRefreshToken(refereshTokenRepo.findByUserAndIsBlockedAndTokenNot(user, false, refreshToken));
+
+		});
+
+		simpleStructure.setMessage("Revoked from all other devices");
+		simpleStructure.setStatus(HttpStatus.OK.value());
+
+		return new ResponseEntity<SimpleResponseStructure>(simpleStructure, HttpStatus.OK);
+	}
+
+	private void blockRefreshToken(List<RefreshToken> refreshToken) {
+		refreshToken.forEach(rt -> {
+			rt.setBlocked(true);
+			refereshTokenRepo.save(rt);
+
+		});
+
+	}
+
+	private void blockAccessToken(List<AccessToken> accessToken) {
+		accessToken.forEach(at -> {
+			at.setBlocked(true);
+			accessTokenRepo.save(at);
+		});
+
+	}
+
+	@Override
+	public ResponseEntity<SimpleResponseStructure> refreshLogin(String accessToken, String refreshToken,
+			HttpServletResponse httpServletResponse) {
+		String userName = SecurityContextHolder.getContext().getAuthentication().getName();
+		userRepo.findByUserName(userName).ifPresent(user->{
+			if(accessToken==null) {
+				grantAccess(httpServletResponse, user);
+			}else {
+				blockAccessToken(accessTokenRepo.findAllByUserAndIsBlockedAndTokenNot(user, false, accessToken));
+			}
+			if(refreshToken==null) {
+				throw new UserNotLoggedInException("user not logged in", HttpStatus.BAD_REQUEST.value(), "please login");
+			}else {
+				blockRefreshToken(refereshTokenRepo.findByUserAndIsBlockedAndTokenNot(user, false, refreshToken));
+				grantAccess(httpServletResponse, user);
+			}
+		});
+		 simpleStructure.setMessage("Token Refreshed");
+		 simpleStructure.setStatus(HttpStatus.OK.value());
+		return new ResponseEntity<SimpleResponseStructure>(simpleStructure,HttpStatus.OK);
 	}
 
 }
