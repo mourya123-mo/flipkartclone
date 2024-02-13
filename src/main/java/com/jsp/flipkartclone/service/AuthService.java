@@ -10,7 +10,6 @@ import com.jsp.flipkartclone.responsedto.UserResponse;
 import com.jsp.flipkartclone.util.ResponseStructure;
 import com.jsp.flipkartclone.util.SimpleResponseStructure;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
@@ -22,8 +21,14 @@ public interface AuthService {
 	public ResponseEntity<ResponseStructure<AuthResponse>> login(AuthRequest authRequest,
 			HttpServletResponse servletResponse);
 
-	ResponseEntity<ResponseStructure<SimpleResponseStructure>> logout(
+	ResponseEntity<SimpleResponseStructure> logout(
 			HttpServletResponse httpServletResponse,String accessToken,String refreshToken);
 
-	ResponseEntity<ResponseStructure<SimpleResponseStructure>> revokeAll();
+	ResponseEntity<SimpleResponseStructure> revokeAll();
+
+	ResponseEntity<SimpleResponseStructure> revokeOtherDevices(String accessToken,
+			String refreshToken);
+
+	ResponseEntity<SimpleResponseStructure> refreshLogin(String accessToken, String refreshToken,
+			HttpServletResponse httpServletResponse);
 }

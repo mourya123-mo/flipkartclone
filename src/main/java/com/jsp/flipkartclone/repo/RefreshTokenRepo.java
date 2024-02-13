@@ -9,11 +9,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-
 public interface RefreshTokenRepo extends JpaRepository<RefreshToken, Long> {
-  RefreshToken findByToken(String token);
-  
-    List<RefreshToken> findByExpireationBefore(LocalDateTime now);
-    
- Optional<RefreshToken>  findByUserAndBlocked(User user, boolean isBlocked);
+	RefreshToken findByToken(String token);
+
+	List<RefreshToken> findByExpireationBefore(LocalDateTime now);
+
+	List<RefreshToken> findByUserAndIsBlocked(User user, boolean isBlocked);
+
+	List<RefreshToken> findByUserAndIsBlockedAndTokenNot(User user, boolean b, String refreshToken);
+
 }
