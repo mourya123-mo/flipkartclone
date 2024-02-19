@@ -155,7 +155,7 @@ public class AuthServiceImpl implements AuthService {
 
 		// adding access and refresh tokens to response
 		response.addCookie(cookieManager.Configure(new Cookie("at", accessToken), accessExpireyInSeconds));
-		response.addCookie(cookieManager.Configure(new Cookie("rt", refreshToken), accessExpireyInSeconds));
+		response.addCookie(cookieManager.Configure(new Cookie("rt", refreshToken), refereshExpireyInSeconds));
 
 		// saving the access and refresh cookies into database
 		accessTokenRepo.save(AccessToken.builder().user(user).isBlocked(false).token(accessToken)
@@ -323,10 +323,10 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public ResponseEntity<SimpleResponseStructure> refreshLogin(String accessToken, String refreshToken,
+	public ResponseEntity<ResponseStructure<AuthResponse>> refreshLogin(String accessToken, String refreshToken,
 			HttpServletResponse httpServletResponse) {
-		String userName = SecurityContextHolder.getContext().getAuthentication().getName();
-		userRepo.findByUserName(userName).ifPresent(user->{
+		String username = jwtService.extractUserName(refreshToken);
+		userRepo.findByUserName(username).ifPresent(user->{
 			if(accessToken==null) {
 				grantAccess(httpServletResponse, user);
 			}else {
@@ -339,9 +339,17 @@ public class AuthServiceImpl implements AuthService {
 				grantAccess(httpServletResponse, user);
 			}
 		});
-		 simpleStructure.setMessage("Token Refreshed");
-		 simpleStructure.setStatus(HttpStatus.OK.value());
-		return new ResponseEntity<SimpleResponseStructure>(simpleStructure,HttpStatus.OK);
+		return userRepo.findByUserName(username).map(user -> {
+			grantAccess(httpServletResponse, user);
+			return ResponseEntity.ok(authStructure
+					.setStatus(HttpStatus.OK.value())
+					.setMessage("Refresh Token Refreshed")
+					.setData(AuthResponse.builder().userId(user.getUserId()).userName(username)
+							.role(user.getUserRole().name()).isAuthenticate(true)
+							.accessExpiration(LocalDateTime.now().plusSeconds(accessExpireyInSeconds))
+							.refreshExpiration(LocalDateTime.now().plusSeconds(refereshExpireyInSeconds)).build()));
+
+		}).get();
 	}
 
 }

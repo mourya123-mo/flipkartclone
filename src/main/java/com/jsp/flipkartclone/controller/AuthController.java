@@ -3,6 +3,7 @@ package com.jsp.flipkartclone.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,12 +24,14 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @RequestMapping("/api/v1")
 @RestController
+@CrossOrigin(allowCredentials = "true",origins = "http://localhost:5173/")
 public class AuthController {
 
 	private AuthService authService;
 
 	@PostMapping(path = "/register")
-	public ResponseEntity<ResponseStructure<UserResponse>> regesterUser(@RequestBody UserRequest userRequest) {
+	public ResponseEntity<ResponseStructure<UserResponse>> regesterUser(@RequestBody  UserRequest userRequest) {
+		System.err.println(userRequest.getUserRole());
 		return authService.regesterUser(userRequest);
 
 	}
@@ -69,7 +72,7 @@ public class AuthController {
 
 	}
 	@PostMapping("/refresh-login")
-	public ResponseEntity<SimpleResponseStructure> refreshLogin(@CookieValue(name = "at", required = false) String accessToken,
+	public ResponseEntity<ResponseStructure<AuthResponse>> refreshLogin(@CookieValue(name = "at", required = false) String accessToken,
 			@CookieValue(name = "rt", required = false) String refreshToken, HttpServletResponse httpServletResponse){
 				return authService.refreshLogin(accessToken,refreshToken,httpServletResponse) ;
 		

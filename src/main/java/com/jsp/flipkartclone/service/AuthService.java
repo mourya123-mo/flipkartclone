@@ -29,6 +29,6 @@ public interface AuthService {
 	ResponseEntity<SimpleResponseStructure> revokeOtherDevices(String accessToken,
 			String refreshToken);
 
-	ResponseEntity<SimpleResponseStructure> refreshLogin(String accessToken, String refreshToken,
+	ResponseEntity<ResponseStructure<AuthResponse>> refreshLogin(String accessToken, String refreshToken,
 			HttpServletResponse httpServletResponse);
 }
