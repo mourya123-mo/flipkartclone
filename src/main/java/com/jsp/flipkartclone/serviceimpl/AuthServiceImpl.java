@@ -23,13 +23,16 @@ import com.jsp.flipkartclone.entity.AccessToken;
 import com.jsp.flipkartclone.entity.Customer;
 import com.jsp.flipkartclone.entity.RefreshToken;
 import com.jsp.flipkartclone.entity.Seller;
+import com.jsp.flipkartclone.entity.Store;
 import com.jsp.flipkartclone.entity.User;
 import com.jsp.flipkartclone.exception.UserNotLoggedInException;
 import com.jsp.flipkartclone.repo.AccessTokenRepo;
 import com.jsp.flipkartclone.repo.RefreshTokenRepo;
+import com.jsp.flipkartclone.repo.StoreRepo;
 import com.jsp.flipkartclone.repo.UserRepo;
 import com.jsp.flipkartclone.requestdto.AuthRequest;
 import com.jsp.flipkartclone.requestdto.OtpModel;
+import com.jsp.flipkartclone.requestdto.StoreRequest;
 import com.jsp.flipkartclone.requestdto.UserRequest;
 import com.jsp.flipkartclone.responsedto.AuthResponse;
 import com.jsp.flipkartclone.responsedto.UserResponse;
@@ -64,6 +67,8 @@ public class AuthServiceImpl implements AuthService {
 	private RefreshTokenRepo refereshTokenRepo;
 	private ResponseStructure<AuthResponse> authStructure;
 	private SimpleResponseStructure simpleStructure;
+	
+	
 
 	@Value("${myapp.access.expiry}")
 	private int accessExpireyInSeconds;
@@ -75,7 +80,8 @@ public class AuthServiceImpl implements AuthService {
 			ResponseStructure<UserResponse> structure, CacheStore<User> userCacheStore, JavaMailSender javaMailSender,
 			AuthenticationManager authenticationManager, CookieManager cookieManager, JwtService jwtService,
 			AccessTokenRepo accessTokenRepo, RefreshTokenRepo refereshTokenRepo,
-			ResponseStructure<AuthResponse> authStructure,SimpleResponseStructure simpleStructure) {
+			ResponseStructure<AuthResponse> authStructure, SimpleResponseStructure simpleStructure
+			) {
 		super();
 		this.passwordEncoder = passwordEncoder;
 		this.userRepo = userRepo;
@@ -90,6 +96,8 @@ public class AuthServiceImpl implements AuthService {
 		this.refereshTokenRepo = refereshTokenRepo;
 		this.authStructure = authStructure;
 		this.simpleStructure = simpleStructure;
+		
+		
 	}
 
 	@SuppressWarnings("unchecked")
@@ -113,6 +121,7 @@ public class AuthServiceImpl implements AuthService {
 		return (T) user;
 
 	}
+
 
 	public UserResponse mapToUserResponse(User user) {
 
@@ -249,15 +258,15 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public ResponseEntity<SimpleResponseStructure> logout(HttpServletResponse httpServletResponse,
-			String accessToken, String refreshToken) {
+	public ResponseEntity<SimpleResponseStructure> logout(HttpServletResponse httpServletResponse, String accessToken,
+			String refreshToken) {
 		if (accessToken == null && refreshToken == null)
 			throw new UserNotLoggedInException("user not loggedin", HttpStatus.NOT_FOUND.value(), "");
 		AccessToken at = accessTokenRepo.findByToken(accessToken);
 		at.setBlocked(true);
 		System.out.println("at blocked");
 		accessTokenRepo.save(at);
-	System.out.println("at saved");
+		System.out.println("at saved");
 		RefreshToken rt = refereshTokenRepo.findByToken(refreshToken);
 		rt.setBlocked(true);
 		System.out.println("rt blocked");
@@ -290,8 +299,7 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public ResponseEntity<SimpleResponseStructure> revokeOtherDevices(String accessToken,
-			String refreshToken) {
+	public ResponseEntity<SimpleResponseStructure> revokeOtherDevices(String accessToken, String refreshToken) {
 		userRepo.findByUserName(SecurityContextHolder.getContext().getAuthentication().getName()).ifPresent(user -> {
 			blockAccessToken(accessTokenRepo.findAllByUserAndIsBlockedAndTokenNot(user, false, accessToken));
 
@@ -326,23 +334,23 @@ public class AuthServiceImpl implements AuthService {
 	public ResponseEntity<ResponseStructure<AuthResponse>> refreshLogin(String accessToken, String refreshToken,
 			HttpServletResponse httpServletResponse) {
 		String username = jwtService.extractUserName(refreshToken);
-		userRepo.findByUserName(username).ifPresent(user->{
-			if(accessToken==null) {
+		userRepo.findByUserName(username).ifPresent(user -> {
+			if (accessToken == null) {
 				grantAccess(httpServletResponse, user);
-			}else {
+			} else {
 				blockAccessToken(accessTokenRepo.findAllByUserAndIsBlockedAndTokenNot(user, false, accessToken));
 			}
-			if(refreshToken==null) {
-				throw new UserNotLoggedInException("user not logged in", HttpStatus.BAD_REQUEST.value(), "please login");
-			}else {
+			if (refreshToken == null) {
+				throw new UserNotLoggedInException("user not logged in", HttpStatus.BAD_REQUEST.value(),
+						"please login");
+			} else {
 				blockRefreshToken(refereshTokenRepo.findByUserAndIsBlockedAndTokenNot(user, false, refreshToken));
 				grantAccess(httpServletResponse, user);
 			}
 		});
 		return userRepo.findByUserName(username).map(user -> {
 			grantAccess(httpServletResponse, user);
-			return ResponseEntity.ok(authStructure
-					.setStatus(HttpStatus.OK.value())
+			return ResponseEntity.ok(authStructure.setStatus(HttpStatus.OK.value())
 					.setMessage("Refresh Token Refreshed")
 					.setData(AuthResponse.builder().userId(user.getUserId()).userName(username)
 							.role(user.getUserRole().name()).isAuthenticate(true)
@@ -351,5 +359,6 @@ public class AuthServiceImpl implements AuthService {
 
 		}).get();
 	}
-
 }
+
+
