@@ -1,6 +1,7 @@
 package com.jsp.flipkartclone.security;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -49,7 +50,7 @@ public class JwtFilter extends OncePerRequestFilter {
 			}
 			String userName=null;
 			if (at != null && rt != null) {
-				Optional<AccessToken> accessToken = accessTokenRepo.findByTokenAndIsBlocked(at, false);
+				List<AccessToken> accessToken = accessTokenRepo.findByTokenAndIsBlocked(at, false);
 				if (accessToken == null)
 					throw new UserNotLoggedInException("Token is blocked", HttpStatus.BAD_REQUEST.value(), "user not loged in");
 				else {

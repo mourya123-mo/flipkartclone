@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jsp.flipkartclone.requestdto.AuthRequest;
 import com.jsp.flipkartclone.requestdto.OtpModel;
+import com.jsp.flipkartclone.requestdto.StoreRequest;
 import com.jsp.flipkartclone.requestdto.UserRequest;
 import com.jsp.flipkartclone.responsedto.AuthResponse;
 import com.jsp.flipkartclone.responsedto.UserResponse;
@@ -77,4 +78,5 @@ public class AuthController {
 				return authService.refreshLogin(accessToken,refreshToken,httpServletResponse) ;
 		
 	}
+	
 }

@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.jsp.flipkartclone.requestdto.AuthRequest;
 import com.jsp.flipkartclone.requestdto.OtpModel;
+import com.jsp.flipkartclone.requestdto.StoreRequest;
 import com.jsp.flipkartclone.requestdto.UserRequest;
 import com.jsp.flipkartclone.responsedto.AuthResponse;
 import com.jsp.flipkartclone.responsedto.UserResponse;
@@ -31,4 +32,7 @@ public interface AuthService {
 
 	ResponseEntity<ResponseStructure<AuthResponse>> refreshLogin(String accessToken, String refreshToken,
 			HttpServletResponse httpServletResponse);
+
+	
+
 }

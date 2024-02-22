@@ -16,6 +16,7 @@ public class SimpleResponseStructure {
 
 	private String message;
 	private int status;
+	
 	public String getMessage() {
 		return message;
 	}
