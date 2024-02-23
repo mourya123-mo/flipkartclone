@@ -49,8 +49,9 @@ public class AddressServiceImpl implements AddressService {
 						"store not found"));
 
 		Adress adress = mapToAdress(addressRequest);
-		addressRepo.save(adress);
+		
 		store.setAdress(adress);
+		addressRepo.save(adress);
 		storeRepo.save(store);
 
 		responseStructure.setData(mapToAdressResponse(adress));
