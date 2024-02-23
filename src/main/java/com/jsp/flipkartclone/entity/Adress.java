@@ -1,11 +1,14 @@
 package com.jsp.flipkartclone.entity;
 
+import java.util.List;
+
 import com.jsp.flipkartclone.enums.AdressType;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,4 +37,8 @@ public class Adress {
 
 	@OneToOne
 	private Store store;
+	
+	
+	@OneToMany(mappedBy = "adress")
+	private List<Contact> contactList;
 }
